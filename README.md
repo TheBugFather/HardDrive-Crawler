@@ -17,12 +17,12 @@
 
 ## How to use
 - Confirm your email account allows less secure apps (otherwise api call are inhibited)
-- Open up the harddriveCrawler.py in text editor of choice, find email section, and add username & password
+- Open up the harddriveCrawler.py in text editor of choice, find email section, and add username and password
 - Open up Command Prompt (CMD)
 - Enter directory containing program and execute in shell
 - The program will run for about 45 seconds, check your email when it is finished
 - Download encrypted files and copy them into the directory with the program and decrypt files
-- Run the hash decrypt program which reveals the text hash file with the hashes for encrypted & unencrypted data
-- Optional - use hash generator to confirm sha256 encrypted file hashes retained entegrity
+- Run the hash decrypt program which reveals the text hash file with the hashes for encrypted and unencrypted data
+- Optional - use hash generator to confirm sha256 encrypted file hashes retained integrity
 - Run file decrypt program to decrypt all the other files
-- Optional - use hash generator to confirm sha256 plain text file hashes retained entegrity
+- Optional - use hash generator to confirm sha256 plain text file hashes retained integrity
