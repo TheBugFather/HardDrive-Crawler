@@ -5,7 +5,9 @@
 > This program runs on Windows, written in Python 3.8
 
 ## Installation
-> Run the setup.py script to install external modules.
+- Run setup.py <env name> to build virtual environment, any packages in packages.txt will be installed in the created venv.
+- Once virtual env is built traverse to the Scripts directory in the environment folder just created.
+- In the Scripts directory, execute the "activate" script to activate the virtual environment.
 
 ## Purpose
 > This program recursively crawls through the specified directory and any available subdirectories.
