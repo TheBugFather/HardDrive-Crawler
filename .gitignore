@@ -3,3 +3,7 @@
 
 # Ignore virtual environment files #
 venv/*
+
+# Ignore files in the DecryptDock #
+DecryptDock/*
+!DecryptDock/.keep
