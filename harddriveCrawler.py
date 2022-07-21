@@ -208,14 +208,21 @@ def main():
     # Iterate though result files and attach to email #
     for _, _, file_names in os.walk(path):
         for file in file_names:
-            #
+            # If item is encrypted attachment file #
             if re_attachment.match(file):
+                # Initialize attachment object #
                 p = MIMEBase('application', 'octet-stream')
-                with open(path + file, 'rb') as attachment:
+
+                # Open the file and set as attachment payload #
+                with open(f'{path}{file}', 'rb') as attachment:
                     p.set_payload(attachment.read())
+
+                # Encode attachment as base64 #
                 encoders.encode_base64(p)
+                # Add header to attachment object #
                 p.add_header('Content-Disposition', 'attachment;'   
                              'filename = {0}'.format(file))
+                # Attach attachment to message #
                 msg.attach(p)
             else:
                 pass
