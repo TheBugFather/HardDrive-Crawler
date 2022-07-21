@@ -33,10 +33,10 @@ def main():
 
     # If the OS is Windows #
     if os.name == 'nt':
-        path = f'{cwd}\\DecryptDock'
+        path = f'{cwd}\\DecryptDock\\'
     # If the OS is Linux #
     else:
-        path = f'{cwd}/DecryptDock'
+        path = f'{cwd}/DecryptDock/'
 
     # Ensure storage path for exfiltration data exists #
     pathlib.Path(path).mkdir(parents=True, exist_ok=True)
@@ -53,29 +53,20 @@ def main():
     for file in os.scandir(path):
         # If the item matches file regex and is not .keep file or decrypted hash file #
         if re_files.match(file.name) and file.name not in ('.keep', 'SHA_Hashes.txt'):
-            # If the OS is Windows #
-            if os.name == 'nt':
-                cipher_path = f'{path}\\{file.name}'
-                plain_path = f'{path}\\{file.name[2:]}'
-            # If the OS is Linux #
-            else:
-                cipher_path = f'{path}/{file.name}'
-                plain_path = f'{path}/{file.name[2:]}'
-
             try:
                 # Read the encrypted cipher text #
-                with open(cipher_path, 'rb') as encrypted_text:
+                with open(f'{path}{file.name}', 'rb') as encrypted_text:
                     data = encrypted_text.read()
 
                 # Decrypt the cipher text data #
                 decrypted = Fernet(key).decrypt(data)
 
                 # Write the plain text data to fresh file #
-                with open(plain_path, 'wb') as decrypted_text:
+                with open(f'{path}{file.name[2:]}', 'wb') as decrypted_text:
                     decrypted_text.write(decrypted)
 
                 # Delete the cipher text file #
-                os.remove(cipher_path)
+                os.remove(f'{path}{file.name}')
 
             # If error occurs during file operation #
             except (UnicodeError, OSError, IOError) as io_err:
