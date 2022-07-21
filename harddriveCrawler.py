@@ -206,8 +206,8 @@ def main():
         logging.exception(f'Error occurred accessing hash files: {io_err}\n\n')
 
     # Populate email header and body #
-    email_address = 'ngimbel64@gmail.com'                          # <= Enter email address
-    password = 'kkkieveeyerddgxf'                               # <= Enter gmail application generate password
+    email_address = ''                          # <= Enter email address
+    password = ''                               # <= Enter gmail application generate password
     msg = MIMEMultipart()
     msg['From'] = email_address
     msg['To'] = email_address
