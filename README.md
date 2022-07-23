@@ -1,5 +1,7 @@
 # Hard-drive Crawler
 ![alt text](https://github.com/ngimb64/HardDrive-Crawler/blob/main/HarddriveCrawler.gif?raw=True)
+![alt text](https://github.com/ngimb64/HardDrive-Crawler/blob/main/HarddriveCrawler.png?raw=True)
+
 
 ## Notice
 > This tool may be used for legal purposes only.  Users take full responsibility
