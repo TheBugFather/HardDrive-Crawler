@@ -1,4 +1,4 @@
-# Built-in modules #
+""" Built-in modules """
 import os
 import pathlib
 import sys
@@ -7,27 +7,22 @@ import sys
 from cryptography.fernet import Fernet
 
 
-"""
-########################################################################################################################
-Name:       PrintErr
-Purpose:    Displays the passed in error message via stderr.
-Parameters: The error message to be displayed.
-Returns:    Nothing
-########################################################################################################################
-"""
-def PrintErr(msg: str):
+def print_err(msg: str):
+    """
+    Displays the passed in error message via stderr.
+
+    :param msg:  The error message to be displayed.
+    :return:  Nothing
+    """
     print(f'\n* [ERROR] {msg} *\n', file=sys.stderr)
 
 
-"""
-########################################################################################################################
-Name:       main
-Purpose:    Decrypts the encrypted exfiltration data.
-Parameters: Nothing
-Returns:    Nothing
-########################################################################################################################
-"""
 def main():
+    """
+    Decrypts the encrypted exfiltration data.
+
+    :return:  Nothing
+    """
     # Get the current working directory #
     cwd = os.getcwd()
 
@@ -43,7 +38,7 @@ def main():
 
     # If the DecryptDock does not exist #
     if not os.path.isdir(path):
-        PrintErr('DecryptDock missing, now created so move files in it and rerun program')
+        print_err('DecryptDock missing, now created so move files in it and rerun program')
         os.mkdir(path)
         sys.exit(1)
 
@@ -63,16 +58,13 @@ def main():
 
     # If error occurs during file operation #
     except (UnicodeError, IOError, OSError) as io_err:
-        PrintErr(f'Error occurred decrypting hashes: {io_err}')
+        print_err(f'Error occurred decrypting hashes: {io_err}')
 
     # Delete the original cipher text file #
     os.remove(f'{path}e_SHA_Hashes.txt')
 
+    sys.exit(0)
+
 
 if __name__ == '__main__':
-    try:
-        main()
-
-    # If unknown exception occurs #
-    except Exception as err:
-        PrintErr(f'Unknown error occurred: {err}')
+    main()
