@@ -317,8 +317,6 @@ def main():
 
     :return:  Nothing
     """
-    # Get the starting execution time #
-    print('Crawling ...')
     # Initialize compiled regex object #
     re_obj = CompiledRegex()
 
