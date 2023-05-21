@@ -23,8 +23,7 @@ def main():
 
     :return: Nothing
     """
-    cwd = Path('.')
-    path = cwd / 'DecryptDock'
+    path = Path.cwd() / 'DecryptDock'
 
     # If the DecryptDock does not exist #
     if not path.exists():
@@ -36,7 +35,7 @@ def main():
     re_files = re.compile(r'^e_.{1,253}\.[a-z]{2,4}$')
     key = b'UR58Mz1VHiGJa1_W42E4G0FD__Ihb4vevs3wmWhVtOc='
 
-    for file in os.scandir(str(path.resolve())):
+    for file in os.scandir(path):
         # If the item matches file regex and is not .keep file or decrypted hash file #
         if re_files.match(file.name) and file.name not in ('.keep', 'SHA_Hashes.txt'):
             crypt_path = path / file.name
@@ -57,7 +56,7 @@ def main():
                 crypt_path.unlink()
 
             # If error occurs during file operation #
-            except (UnicodeError, OSError, IOError) as io_err:
+            except (UnicodeError, OSError) as io_err:
                 print_err(f'Error occurred decrypting {file.name}: {io_err}')
 
     sys.exit(0)

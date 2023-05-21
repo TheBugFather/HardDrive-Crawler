@@ -1,10 +1,11 @@
-# Hard-drive Crawler
+<div align="center" style="font-family: monospace">
+<h1>HardDrive-Crawler</h1>
+&#9745;&#65039; Bandit verified &nbsp;|&nbsp; &#9745;&#65039; Synk verified &nbsp;|&nbsp; &#9745;&#65039; Pylint verified 9.94/10
+<br><br>
+
 ![alt text](https://github.com/ngimb64/HardDrive-Crawler/blob/main/HarddriveCrawler.gif?raw=True)
 ![alt text](https://github.com/ngimb64/HardDrive-Crawler/blob/main/HarddriveCrawler.png?raw=True)
-
-&#9745;&#65039; Bandit verified<br>
-&#9745;&#65039; Synk verified<br>
-&#9745;&#65039; Pylint verified 9.94/10
+</div>
 
 ## Notice
 > This tool may be used for legal purposes only.<br>
@@ -12,14 +13,20 @@
 > The author accepts no liability for damage caused by this tool.<br>
 > If these terms are not acceptable to you, then do not use this tool.
 
-## Prereqs
-This program runs on Windows 10 and Debian-based Linux, written in Python 3.8 and updated to version 3.10.6
-
 ## Purpose
-This program recursively crawls through the uthe es userthe nd user populated directoriesany available subdirectories.
+This program recursively crawls through the users directory hierarchy in the file system.
 It uses regex to match specified file extension types; searching through the document for a regex match (email, ip address, phone). 
 The program continues through a combination of hashing => encrypting => hashing encrypted data => writing hashes to a text file => encrypting hash file with separate key.
 Finally, the program completes by emailing the encrypted results and deleting the locally created logs.
+
+### License
+The program is licensed under [GNU Public License v3.0](LICENSE.md)
+
+### Contributions or Issues
+[CONTRIBUTING](CONTRIBUTING.md)
+
+## Prereqs
+This program runs on Windows 10 and Debian-based Linux, written in Python 3.8 and updated to version 3.10.6
 
 ## Installation
 - Run the setup.py script to build a virtual environment and install all external packages in the created venv.
